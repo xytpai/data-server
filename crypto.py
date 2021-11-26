@@ -20,7 +20,7 @@ class RSAWrapper:
     def load_pkcs1(self, pubkey) -> None:
         self.pubkey = rsa.PublicKey.load_pkcs1(pubkey)
 
-    def encode(self, message) -> str:
+    def encrypt(self, message) -> str:
         chunk = self.chunk
         divide = ceil(len(message)/float(chunk))
         cryptolalia = b''
@@ -29,7 +29,7 @@ class RSAWrapper:
                                                chunk:(i+1)*chunk].encode(), self.pubkey)
         return str(b64encode(cryptolalia), 'utf-8')
 
-    def decode(self, cryptolalia) -> str:
+    def decrypt(self, cryptolalia) -> str:
         cryptolalia = b64decode(cryptolalia)
         chunk = self.keylength//8
         divide = len(cryptolalia)//chunk
@@ -68,7 +68,7 @@ class AESWrapper:
         self.keylength = len(key)
         self.cryptor = AES.new(key, AES.MODE_ECB)
 
-    def encode(self, message) -> str:
+    def encrypt(self, message) -> str:
         chunk = self.keylength
         divide = ceil(len(message)/float(chunk))
         r = len(message) % chunk
@@ -79,7 +79,7 @@ class AESWrapper:
                 message[i*chunk:(i+1)*chunk].encode())
         return str(b64encode(cryptolalia), 'utf-8')
 
-    def decode(self, cryptolalia) -> str:
+    def decrypt(self, cryptolalia) -> str:
         cryptolalia = b64decode(cryptolalia)
         chunk = self.keylength
         divide = len(cryptolalia)//chunk
@@ -97,28 +97,28 @@ if __name__ == '__main__':
     text = 'my rsa pubkey is\n' + myrsa.get_pkcs1()
     print('text:')
     print(text, end='\n\n')
-    encode_start = time.time()
-    cryptolalia = myrsa.encode(text)
+    encrypt_start = time.time()
+    cryptolalia = myrsa.encrypt(text)
     sign_start = time.time()
     signature = myrsa.sign(text)
-    decode_start = time.time()
-    decoded_text = myrsa.decode(cryptolalia)
-    decode_end = time.time()
-    print('cryptolalia:', sign_start-encode_start)
+    decrypt_start = time.time()
+    decrypt_text = myrsa.decrypt(cryptolalia)
+    decrypt_end = time.time()
+    print('cryptolalia:', sign_start-encrypt_start)
     print(cryptolalia, end='\n\n')
-    print('signature:', decode_start-sign_start)
+    print('signature:', decrypt_start-sign_start)
     print(signature, end='\n\n')
-    print('decoded_text:', decode_end-decode_start)
-    print(decoded_text, end='\n\n')
-    myrsa.verify(decoded_text, signature)
+    print('decrypt_text:', decrypt_end-decrypt_start)
+    print(decrypt_text, end='\n\n')
+    myrsa.verify(decrypt_text, signature)
     print('AES Test', end='\n\n')
     myaes = AESWrapper()
-    encode_start = time.time()
-    cryptolalia = myaes.encode(text)
-    decode_start = time.time()
-    decoded_text = myaes.decode(cryptolalia)
-    decode_end = time.time()
-    print('cryptolalia:', decode_start-encode_start)
+    encrypt_start = time.time()
+    cryptolalia = myaes.encrypt(text)
+    decrypt_start = time.time()
+    decrypt_text = myaes.decrypt(cryptolalia)
+    decrypt_end = time.time()
+    print('cryptolalia:', decrypt_start-encrypt_start)
     print(cryptolalia, end='\n\n')
-    print('decoded_text:', decode_end-decode_start)
-    print(decoded_text, end='\n\n')
+    print('decrypt_text:', decrypt_end-decrypt_start)
+    print(decrypt_text, end='\n\n')
