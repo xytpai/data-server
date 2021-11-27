@@ -1,3 +1,4 @@
+import os
 import random
 import rsa
 from math import ceil
@@ -10,14 +11,24 @@ class RSAWrapper:
         self.keylength = keylength
         self.chunk = keylength//8-11
         if keygen:
-            pubkey, privkey = rsa.newkeys(keylength)
-            self.pubkey = pubkey
-            self.privkey = privkey
+            if os.path.exists('pubkey.pem') and os.path.exists('privkey.pem'):
+                with open('pubkey.pem', 'rb') as f:
+                    self.pubkey = rsa.PublicKey.load_pkcs1(f.read())
+                with open('privkey.pem', 'rb') as f:
+                    self.privkey = rsa.PrivateKey.load_pkcs1(f.read())
+            else:
+                pubkey, privkey = rsa.newkeys(keylength)
+                with open('pubkey.pem', 'wb') as f:
+                    f.write(pubkey.save_pkcs1())
+                with open('privkey.pem', 'wb') as f:
+                    f.write(privkey.save_pkcs1())
+                self.pubkey = pubkey
+                self.privkey = privkey
 
     def get_pkcs1(self) -> str:
         return str(self.pubkey.save_pkcs1(), 'utf-8')
 
-    def load_pkcs1(self, pubkey) -> None:
+    def load_pubkey(self, pubkey) -> None:
         self.pubkey = rsa.PublicKey.load_pkcs1(pubkey)
 
     def encrypt(self, message) -> str:
