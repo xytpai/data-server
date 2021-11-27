@@ -7,25 +7,30 @@ from Crypto.Cipher import AES
 
 
 class RSAWrapper:
-    def __init__(self, keygen=True, keylength=1024) -> None:
+    def __init__(self, keygen=True, keylength=1024, localpem=False) -> None:
         self.keylength = keylength
         self.chunk = keylength//8-11
         if keygen:
-            if os.path.exists('pubkey.pem') and os.path.exists('privkey.pem'):
-                with open('pubkey.pem', 'rb') as f:
+            pubkey_pem, privkey_pem = 'pubkey.pem', 'privkey.pem'
+            if not localpem:
+                usr_ssh_home = os.path.join(os.path.expanduser('~'), '.ssh')
+                pubkey_pem = os.path.join(usr_ssh_home, pubkey_pem)
+                privkey_pem = os.path.join(usr_ssh_home, privkey_pem)
+            if os.path.exists(pubkey_pem) and os.path.exists(privkey_pem):
+                with open(pubkey_pem, 'rb') as f:
                     self.pubkey = rsa.PublicKey.load_pkcs1(f.read())
-                with open('privkey.pem', 'rb') as f:
+                with open(privkey_pem, 'rb') as f:
                     self.privkey = rsa.PrivateKey.load_pkcs1(f.read())
             else:
                 pubkey, privkey = rsa.newkeys(keylength)
-                with open('pubkey.pem', 'wb') as f:
+                with open(pubkey_pem, 'wb') as f:
                     f.write(pubkey.save_pkcs1())
-                with open('privkey.pem', 'wb') as f:
+                with open(privkey_pem, 'wb') as f:
                     f.write(privkey.save_pkcs1())
                 self.pubkey = pubkey
                 self.privkey = privkey
 
-    def get_pkcs1(self) -> str:
+    def get_pubkey(self) -> str:
         return str(self.pubkey.save_pkcs1(), 'utf-8')
 
     def load_pubkey(self, pubkey) -> None:
@@ -105,7 +110,7 @@ if __name__ == '__main__':
     import time
     print('RSA Test', end='\n\n')
     myrsa = RSAWrapper()
-    text = 'my rsa pubkey is\n' + myrsa.get_pkcs1()
+    text = 'my rsa pubkey is\n' + myrsa.get_pubkey()
     print('text:')
     print(text, end='\n\n')
     encrypt_start = time.time()
