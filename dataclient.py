@@ -1,19 +1,29 @@
 import socket
-from crypto import *
+import json
+import ssl
 
 
 if __name__ == '__main__':
     HOST = '0.0.0.0'
     PORT = 9999
-    # recv pubkey_server
-    rsa_client = RSAWrapper(True)
-    rsa_server = RSAWrapper(False)
-    sk = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sk.connect((HOST, PORT))
-    rsa_server.load_pkcs1(sk.recv(10000).decode())
-    # send pubkey
-    sendmsg = 'hello' + rsa_client.get_pkcs1() + 'hi'
-    sendsign = rsa_client.sign(sendmsg)
-    sendmsg = ','.join([rsa_server.encrypt(sendmsg), sendsign])
-    sk.send(sendmsg.encode())
-    sk.close()
+    # ssl_context = ssl._create_unverified_context()
+    ssl_context = ssl.create_default_context()
+    # ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ssl_context.load_verify_locations('ca.crt')
+    with socket.create_connection((HOST, PORT)) as sock:
+        with ssl_context.wrap_socket(sock, server_hostname=HOST) as ssock:
+            print(ssock.version())
+
+    # ssl_context.check_hostname = False
+    # ssl_context.load_cert_chain('ca.crt', 'privkey.pem')
+    # sk = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # sk.connect((HOST, PORT))
+    # with ssl_context.wrap_socket(sk, server_hostname='127.0.0.1') as ssk:
+    #     data = {
+    #         'method': 'get_pubkey',
+    #     }
+    #     ssk.send(json.dumps(data).encode())
+    #     recv = ssk.recv(100).decode()
+    #     # recv = json.loads(sk.recv(10000).decode())
+    #     print(recv)
+    #     ssk.close()

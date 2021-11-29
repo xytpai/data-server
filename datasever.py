@@ -1,85 +1,91 @@
 import asyncio
-from crypto import *
+import json
+import ssl
+from collections import defaultdict
 from sqlbase import *
 
 
-def split_rsa_data(message):
-    rsa_start = '-----BEGIN RSA PUBLIC KEY-----'
-    rsa_end = '-----END RSA PUBLIC KEY-----'
-    head = message[:message.find(rsa_start)]
-    tail = message[message.find(rsa_end) + len(rsa_end):]
-    rsadata = message[len(head):-len(tail)]
-    return head, rsadata, tail
+user_cache = defaultdict(dict)
 
 
-def process_first_contact(head, tail):
-    print(head)
-    print(tail)
+# def login(username, password, pubkey_client):
+#     print('processing login:', username, password)
+#     rsa_client = RSAWrapper(False)
+#     rsa_client.load_pubkey(pubkey_client)
+#     aes = AESWrapper(True)
+#     user_cache[username] = {'rsa': rsa_client, 'aes': aes}
+#     resp = {'key': rsa_client.encrypt(aes.get_key())}
+#     return json.dumps(resp)
 
 
-def process_command(cmd):
-    cmd = cmd.strip().split(' ')
-    cmd = [t for t in cmd if len(t) > 0]
-    if cmd[0] == 'login':
-        return 'process login'
-    return None
+# def logout(username):
+#     print('processing logout:', username)
+#     if len(user_cache[username]) == 0:
+#         return None
+#     aes = user_cache[username]['aes']
+#     user_cache[username] = {}
+#     return None
+
+
+def process_main(recv):
+    method = recv['method']
+    if method == 'get_pubkey':
+        resp = {'pubkey': 'hello'}
+        return json.dumps(resp)
+    # elif method == 'login':
+    #     pubkey_client = rsa_server.decrypt(recv['pubkey'])
+    #     username = rsa_server.decrypt(recv['username'])
+    #     password = rsa_server.decrypt(recv['password'])
+    #     return login(username, password, pubkey_client)
+    # elif method == 'logout':
+    #     username = recv['username']
+    #     key = recv['key']
+    #     return logout(username, key)
+    # elif method == 'echo':
+    #     username = recv['username']
+    #     if len(user_cache[username]) == 0:
+    #         return None
+    #     aes = user_cache[username]['aes']
+    #     key = aes.decrypt(recv['key'])
+    #     if key != aes.get_key():
+    #         return None
+    #     data = 'echo: ' + aes.decrypt(recv['data'])
+    #     resp = {'data': aes.encrypt(data)}
+    #     return json.dumps(resp)
 
 
 async def handle_dataserver(reader, writer):
-    # send pubkey
-    try:
-        rsa_server = RSAWrapper(True)
-        writer.write(rsa_server.get_pkcs1().encode())
-        await writer.drain()
-    except Exception as e:
-        print('faild to send pubkey')
-        writer.close()
-        return
-    # recv pubkey_client, head and tail
-    try:
-        rsa_clien = RSAWrapper(False)
-        recvmsg = await reader.read(4096)
-        recvmsg = recvmsg.decode()
-        recvmsg, recvsign = recvmsg.split(',')
-        recvmsg = rsa_server.decrypt(recvmsg)
-        head, pubkey_client, tail = split_rsa_data(recvmsg)
-        rsa_clien.load_pkcs1(pubkey_client)
-        rsa_clien.verify(recvmsg, recvsign)
-        process_first_contact(head.strip(), tail.strip())
-        addr = writer.get_extra_info('peername')
-        print(f"Received {recvmsg!r} from {addr!r}")
-    except Exception as e:
-        print('faild to recv pubkey_client')
-        writer.close()
-        return
-    # send aes key
-    # response = process_command(recvmsg)
-    # while response is not None:
-    #     try:
-    #         response = rsa.encrypt(response.encode(), pubkey_client)
-    #         response = str(base64.b64encode(response), 'utf-8')
-    #         writer.write(response.encode())
-    #         await writer.drain()
-    #     except Exception as e:
-    #         print('faild to send message')
-    #         writer.close()
-    #         return
-    #     try:
-    #         data = await reader.read(10000)
-    #         message = data.decode()
-    #         message = base64.b64decode(message)
-    #         message = rsa.decrypt(message, privkey).decode()
-    #         print(f"Received {message!r} from {addr!r}")
-    #     except Exception as e:
-    #         print('faild to get message')
-    #         writer.close()
-    #         return
-    #     response = process_command(message)
-    # writer.close()
+    addr = writer.get_extra_info('peername')
+    print(f"Connection {addr!r}")
+    resp = 'start'
+    while True:
+        try:
+            recv = await reader.read(4096)
+            recv = json.loads(recv.decode())
+            print(recv)
+        except Exception as e:
+            print('error in recv')
+            writer.close()
+            return
+        resp = process_main(recv)
+        if resp is not None:
+            try:
+                writer.write(resp.encode())
+                await writer.drain()
+            except Exception as e:
+                print('error in send')
+                writer.close()
+                return
+        else:
+            break
+    writer.close()
 
 
 async def run_server(host, port):
-    server = await asyncio.start_server(handle_dataserver, host, port)
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.check_hostname = False
+    ssl_context.load_cert_chain('server.crt', 'server.key')
+    server = await asyncio.start_server(handle_dataserver, host, port, ssl=ssl_context)
     addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
     print(f'Serving on {addrs}')
     async with server:
