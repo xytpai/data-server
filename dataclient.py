@@ -4,12 +4,10 @@ import ssl
 
 
 if __name__ == '__main__':
-    HOST = '0.0.0.0'
+    HOST = '192.168.0.106'
     PORT = 9999
-    # ssl_context = ssl._create_unverified_context()
     ssl_context = ssl.create_default_context()
-    # ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ssl_context.load_verify_locations('ca.crt')
+    ssl_context.load_verify_locations('openssl/ca.crt')
     with socket.create_connection((HOST, PORT)) as sock:
         with ssl_context.wrap_socket(sock, server_hostname=HOST) as ssock:
             print(ssock.version())

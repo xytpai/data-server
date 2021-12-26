@@ -83,8 +83,8 @@ async def handle_dataserver(reader, writer):
 
 async def run_server(host, port):
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_context.check_hostname = False
-    ssl_context.load_cert_chain('server.crt', 'server.key')
+    ssl_context.check_hostname = True
+    ssl_context.load_cert_chain('openssl/server.crt', 'openssl/server.key')
     server = await asyncio.start_server(handle_dataserver, host, port, ssl=ssl_context)
     addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
     print(f'Serving on {addrs}')

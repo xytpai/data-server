@@ -1,2 +1,6 @@
 __pycache__
-*.pem
+openssl/*.pem
+openssl/*.csr
+openssl/*.crt
+openssl/*.key
+openssl/*.srl
