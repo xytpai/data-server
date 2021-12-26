@@ -1,89 +1,90 @@
-import asyncio
-import json
 import ssl
-from collections import defaultdict
-from sqlbase import *
+import json
+import random
+import argparse
+import asyncio
 
 
-user_cache = defaultdict(dict)
+KEYLEN = 100
+ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ/=+'
+user_cache = {}
 
 
-# def login(username, password, pubkey_client):
-#     print('processing login:', username, password)
-#     rsa_client = RSAWrapper(False)
-#     rsa_client.load_pubkey(pubkey_client)
-#     aes = AESWrapper(True)
-#     user_cache[username] = {'rsa': rsa_client, 'aes': aes}
-#     resp = {'key': rsa_client.encrypt(aes.get_key())}
-#     return json.dumps(resp)
+def process_sql(username, sql):
+    return 'ok'
 
 
-# def logout(username):
-#     print('processing logout:', username)
-#     if len(user_cache[username]) == 0:
-#         return None
-#     aes = user_cache[username]['aes']
-#     user_cache[username] = {}
-#     return None
+def identify(username, password):
+    return True
 
 
 def process_main(recv):
     method = recv['method']
-    if method == 'get_pubkey':
-        resp = {'pubkey': 'hello'}
-        return json.dumps(resp)
-    # elif method == 'login':
-    #     pubkey_client = rsa_server.decrypt(recv['pubkey'])
-    #     username = rsa_server.decrypt(recv['username'])
-    #     password = rsa_server.decrypt(recv['password'])
-    #     return login(username, password, pubkey_client)
-    # elif method == 'logout':
-    #     username = recv['username']
-    #     key = recv['key']
-    #     return logout(username, key)
-    # elif method == 'echo':
-    #     username = recv['username']
-    #     if len(user_cache[username]) == 0:
-    #         return None
-    #     aes = user_cache[username]['aes']
-    #     key = aes.decrypt(recv['key'])
-    #     if key != aes.get_key():
-    #         return None
-    #     data = 'echo: ' + aes.decrypt(recv['data'])
-    #     resp = {'data': aes.encrypt(data)}
-    #     return json.dumps(resp)
+    if method == 'login':
+        username = recv['username']
+        password = recv['password']
+        if identify(username, password):
+            key = ''
+            for _ in range(KEYLEN):
+                key += random.choice(ALPHABET)
+            user_cache[username] = key
+            resp = {'key': key, 'state': 'ok'}
+            return json.dumps(resp)
+        else:
+            return None
+    elif method == 'logout':
+        username = recv['username']
+        password = recv['password']
+        if identify(username, password):
+            user_cache.pop(username)
+        else:
+            return None
+    elif method == 'sql':
+        username = recv['username']
+        key = recv['key']
+        if user_cache.get(username, 'none') == 'none':
+            return None
+        elif user_cache[username] != key:
+            return None
+        return process_sql(username, sql)
+    return None
 
 
 async def handle_dataserver(reader, writer):
     addr = writer.get_extra_info('peername')
     print(f"Connection {addr!r}")
-    resp = 'start'
+    tab = '  '
+    resp = None
     while True:
         try:
             recv = await reader.read(4096)
             recv = json.loads(recv.decode())
-            print(recv)
+            print(tab + 'recv: ' + str(recv))
         except Exception as e:
-            print('error in recv')
+            print(tab + 'Err in recv: ' + str(e))
             writer.close()
             return
-        resp = process_main(recv)
+        try:
+            resp = process_main(recv)
+        except:
+            resp = None
         if resp is not None:
             try:
                 writer.write(resp.encode())
                 await writer.drain()
             except Exception as e:
-                print('error in send')
+                print(tab + 'error in send' + str(e))
                 writer.close()
                 return
         else:
             break
+    print('End connection')
     writer.close()
 
 
 async def run_server(host, port):
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_context.check_hostname = True
+    ssl_context.check_hostname = False
     ssl_context.load_cert_chain('openssl/server.crt', 'openssl/server.key')
     server = await asyncio.start_server(handle_dataserver, host, port, ssl=ssl_context)
     addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
@@ -93,6 +94,8 @@ async def run_server(host, port):
 
 
 if __name__ == '__main__':
-    HOST = '0.0.0.0'
-    PORT = 9999
-    asyncio.run(run_server(HOST, PORT))
+    parser = argparse.ArgumentParser(description='Dataserver Demo')
+    parser.add_argument('--host', default='0.0.0.0', type=str)
+    parser.add_argument('--port', default='9999', type=str)
+    args = parser.parse_args()
+    asyncio.run(run_server(args.host, int(args.port)))
