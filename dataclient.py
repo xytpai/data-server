@@ -1,15 +1,16 @@
+from config import cfg
 import socket
 import json
 import ssl
 
 
 if __name__ == '__main__':
-    HOST = '192.168.0.106'
-    PORT = 9999
+    host = cfg.server.host
+    port = cfg.server.port
     ssl_context = ssl.create_default_context()
     ssl_context.load_verify_locations('openssl/ca.crt')
-    with socket.create_connection((HOST, PORT)) as sock:
-        with ssl_context.wrap_socket(sock, server_hostname=HOST) as ssock:
+    with socket.create_connection((host, port)) as sock:
+        with ssl_context.wrap_socket(sock, server_hostname=host) as ssock:
             data = {
                 'method': 'login',
                 'username': 'root',
@@ -27,7 +28,6 @@ if __name__ == '__main__':
             # ssock.send(json.dumps(data).encode())
             # recv = ssock.recv(10000).decode()
             # print(recv)
-
 
     # ssl_context.check_hostname = False
     # ssl_context.load_cert_chain('ca.crt', 'privkey.pem')

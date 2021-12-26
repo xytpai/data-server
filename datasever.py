@@ -1,20 +1,13 @@
+from config import cfg
 import ssl
 import json
 import random
-import argparse
 import asyncio
 from datetime import datetime
 from threading import Timer
-import pymysql as sql
+from sqlmanager import *
 
 
-SQLINFO = {
-    'host': 'localhost',
-    'user': 'debian-sys-maint',
-    'password': 'qqdWvUpyYdfW9crD'
-}
-KEYLEN = 100
-ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ/=+'
 user_cache = {}
 
 
@@ -26,7 +19,7 @@ def time_threading(inc):
     t.start()
 
 
-time_threading(60*60*24*3)  # 3d
+time_threading(cfg.server.expiretime)
 
 
 def process_sql(username, sql):
@@ -37,20 +30,9 @@ def process_sql(username, sql):
 
 
 def identify(username, password):
-    conn = sql.connect(
-        host=SQLINFO['host'],
-        user=SQLINFO['user'],
-        password=SQLINFO['password'],
-        charset='utf8')
-    cursor = conn.cursor()
-    cursor.execute('use company;')
-    conn.commit()
-    cursor.execute(
-        'select * from userpass where username=\"{0}\";'.format(username))
-    conn.commit()
-    datas = eval(str(cursor.fetchone()))
-    exact_password = datas[1]
-    conn.close()
+    mng = SQLManager()
+    output = mng.run(['use company;', 'select * from userpass where username=\"{0}\";'.format(username)], mechod='fetchone')
+    exact_password = eval(output[-1])[1]
     return password == exact_password
 
 
@@ -62,8 +44,8 @@ def process_main(recv):
         password = recv['password']
         if identify(username, password):
             key = ''
-            for _ in range(KEYLEN):
-                key += random.choice(ALPHABET)
+            for _ in range(cfg.tempkey_len):
+                key += random.choice(cfg.alphabet)
             user_cache[username] = key
             resp = {'key': key, 'state': 'ok'}
             return json.dumps(resp)
@@ -131,8 +113,4 @@ async def run_server(host, port):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Dataserver Demo')
-    parser.add_argument('--host', default='0.0.0.0', type=str)
-    parser.add_argument('--port', default='9999', type=str)
-    args = parser.parse_args()
-    asyncio.run(run_server(args.host, int(args.port)))
+    asyncio.run(run_server(cfg.server.host, cfg.server.port))
