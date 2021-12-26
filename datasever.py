@@ -46,7 +46,7 @@ def process_main(recv):
             return None
         elif user_cache[username] != key:
             return None
-        return process_sql(username, sql)
+        return process_sql(username, recv['sql'])
     return None
 
 
