@@ -10,7 +10,24 @@ if __name__ == '__main__':
     ssl_context.load_verify_locations('openssl/ca.crt')
     with socket.create_connection((HOST, PORT)) as sock:
         with ssl_context.wrap_socket(sock, server_hostname=HOST) as ssock:
-            print(ssock.version())
+            data = {
+                'method': 'login',
+                'username': 'root',
+                'password': 'mypassword'
+            }
+            ssock.send(json.dumps(data).encode())
+            recv = json.loads(ssock.recv(10000).decode())
+            print(recv)
+            # data = {
+            #     'method': 'sql',
+            #     'username': 'asd',
+            #     'key': 'N0QPozmF0xIAfPbhPC+mWLet2xKyCx9pVc+ne38L8HzXeMZLLzD1K+xN4Luf0/5xm+CzprSXUdO/iIGEyEJ9STwlLTiJR43M/se4',
+            #     'sql': 'asdasd'
+            # }
+            # ssock.send(json.dumps(data).encode())
+            # recv = ssock.recv(10000).decode()
+            # print(recv)
+
 
     # ssl_context.check_hostname = False
     # ssl_context.load_cert_chain('ca.crt', 'privkey.pem')

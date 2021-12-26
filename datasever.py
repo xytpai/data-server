@@ -3,22 +3,59 @@ import json
 import random
 import argparse
 import asyncio
+from datetime import datetime
+from threading import Timer
+import pymysql as sql
 
 
+SQLINFO = {
+    'host': 'localhost',
+    'user': 'debian-sys-maint',
+    'password': 'qqdWvUpyYdfW9crD'
+}
 KEYLEN = 100
 ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ/=+'
 user_cache = {}
 
 
+def time_threading(inc):
+    global user_cache
+    user_cache = {}
+    print(datetime.now(), 'update cache')
+    t = Timer(inc, time_threading, (inc,))
+    t.start()
+
+
+time_threading(60*60*24*3)  # 3d
+
+
 def process_sql(username, sql):
-    return 'ok'
+    outdata = {
+        'status': 'ok'
+    }
+    return json.dumps(outdata)
 
 
 def identify(username, password):
-    return True
+    conn = sql.connect(
+        host=SQLINFO['host'],
+        user=SQLINFO['user'],
+        password=SQLINFO['password'],
+        charset='utf8')
+    cursor = conn.cursor()
+    cursor.execute('use company;')
+    conn.commit()
+    cursor.execute(
+        'select * from userpass where username=\"{0}\";'.format(username))
+    conn.commit()
+    datas = eval(str(cursor.fetchone()))
+    exact_password = datas[1]
+    conn.close()
+    return password == exact_password
 
 
 def process_main(recv):
+    global user_cache
     method = recv['method']
     if method == 'login':
         username = recv['username']
