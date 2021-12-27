@@ -31,7 +31,8 @@ def process_sql(username, sql):
 
 def identify(username, password):
     mng = SQLManager()
-    output = mng.run(['use company;', 'select * from userpass where username=\"{0}\";'.format(username)], mechod='fetchone')
+    output = mng.run(
+        ['use company;', 'select * from userpass where username=\"{0}\";'.format(username)], mechod='fetchone')
     exact_password = eval(output[-1])[1]
     return password == exact_password
 
