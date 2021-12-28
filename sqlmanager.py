@@ -3,13 +3,14 @@ from config import cfg
 
 
 class SQLManager:
-    def __init__(self) -> None:
+    def __init__(self, check=True) -> None:
         self.conn = sql.connect(
             host=cfg.database.host,
             user=cfg.database.user,
             password=cfg.database.password,
             charset='utf8')
-        self.check()
+        if check:
+            self.check()
 
     def __del__(self):
         self.conn.close()
@@ -33,9 +34,9 @@ class SQLManager:
         init_dict = cfg.database.init
         # database check
         try:
-            self.run(["create databases {0};".format(database_name)])
+            self.run(["create database {0};".format(database_name)])
         except Exception as e:
-            pass
+            print(info_head + str(e))
         self.run(["use {0};".format(database_name)])
         # table check
         for name in table_dict.keys():
@@ -94,5 +95,4 @@ class SQLManager:
         return output
 
 
-if __name__ == '__main__':
-    mng = SQLManager()
+sql_manager = SQLManager()

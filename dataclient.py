@@ -14,7 +14,7 @@ if __name__ == '__main__':
             data = {
                 'method': 'login',
                 'username': 'root',
-                'password': 'mypassword'
+                'password': 'qqdWvUpyYdfW9crD'
             }
             ssock.send(json.dumps(data).encode())
             recv = json.loads(ssock.recv(10000).decode())

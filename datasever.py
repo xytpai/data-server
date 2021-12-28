@@ -1,4 +1,3 @@
-from config import cfg
 import ssl
 import json
 import random
@@ -6,6 +5,7 @@ import asyncio
 from datetime import datetime
 from threading import Timer
 from sqlmanager import *
+from config import cfg
 
 
 user_cache = {}
@@ -29,11 +29,14 @@ def process_sql(username, sql):
     return json.dumps(outdata)
 
 
-def identify(username, password):
-    mng = SQLManager()
-    output = mng.run(
-        ['use company;', 'select * from userpass where username=\"{0}\";'.format(username)], mechod='fetchone')
-    exact_password = eval(output[-1])[1]
+def identify(username, password, table_name='user'):
+    global sql_manager
+    output = sql_manager.run(
+        ['select salt, password from {0} where id=\"{1}\";'.format(table_name, username)], mechod='fetchone')
+    output = eval(output[-1])
+    salt = output[0]
+    exact_password = output[1]
+    password = cfg.function.encode_password(password, salt)
     return password == exact_password
 
 

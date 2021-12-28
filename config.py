@@ -19,7 +19,7 @@ cfg.function.encode_password = encode_password
 cfg.database.host = 'localhost'
 cfg.database.user = 'debian-sys-maint'  # modify it
 cfg.database.password = 'qqdWvUpyYdfW9crD'  # modify it
-cfg.database.base = 'company'
+cfg.database.base = 'company2'
 cfg.database.tables = {
     'user': [
         'id varchar(36) primary key',
