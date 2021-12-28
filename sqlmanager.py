@@ -30,17 +30,37 @@ class SQLManager:
         info_head = 'SQLManager CK: '
         database_name = cfg.database.base
         table_dict = cfg.database.tables
+        init_dict = cfg.database.init
+        # database check
         try:
             self.run(["create databases {0};".format(database_name)])
         except Exception as e:
             pass
         self.run(["use {0};".format(database_name)])
+        # table check
         for name in table_dict.keys():
             params = ", ".join(table_dict[name])
             try:
                 self.run(["create table {0}({1});".format(name, params)])
             except Exception as e:
                 print(info_head + str(e))
+        # init logic
+        for name in init_dict.keys():
+            for seq in init_dict[name]:
+                params, values = [], []
+                for item, param in zip(seq, table_dict[name]):
+                    if item is not None:
+                        params.append(param.split(' ')[0])
+                        if isinstance(item, str):
+                            values.append('\'' + item + '\'')
+                        else:
+                            values.append(str(item))  # number
+                command = "insert into {0} ({1}) values ({2});".format(
+                    name, ", ".join(params), ", ".join(values))
+                try:
+                    self.run([command])
+                except Exception as e:
+                    print(info_head + str(e))
 
     def user_run(self, user_class, sequence: list, mechod='fetchone'):
         info_head = 'SQLManager ERR: '

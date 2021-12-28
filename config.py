@@ -56,7 +56,7 @@ cfg.database.tables = {
         'primary key(role_id, permission_id)',
     ],
     'resource': [
-        'name primary key',
+        'name varchar(36) primary key',
         'count bigint'
     ],
 }
