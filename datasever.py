@@ -5,7 +5,6 @@ import asyncio
 from datetime import datetime
 from threading import Timer
 from sqlmanager import *
-from authority import *
 from config import cfg
 
 
