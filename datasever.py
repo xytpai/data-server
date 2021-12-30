@@ -24,7 +24,6 @@ def process_sql(username, sql) -> str:
 
 
 def process_main(recv):
-    global user_key_cache
     method = recv['method']
     if method == 'login':
         return identifier.login(recv['username'], recv['password'])
@@ -32,6 +31,9 @@ def process_main(recv):
         return identifier.logout(recv['username'], recv['password'])
     elif method == 'sql':
         return identifier.run(recv['username'], recv['key'], process_sql, recv['sql'])
+    else:
+        # TODO: other support
+        pass
     return None
 
 
