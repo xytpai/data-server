@@ -26,13 +26,13 @@ time_threading(cfg.server.expiretime)
 
 def process_sql(username, sql):
     state_ok = {
-        'status': 'ok'
+        'state': 'ok'
     }
     state_error = {
-        'status': 'error'
+        'state': 'error'
     }
     state_denied = {
-        'status': 'denied'
+        'state': 'denied'
     }
     if auth_manager.authorize(username, sql):
         try:
