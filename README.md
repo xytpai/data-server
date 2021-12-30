@@ -8,14 +8,6 @@ sudo snap connect mysql-workbench-community:password-manager-service :password-m
 sudo netstat -tap | grep mysql
 # get pwd
 sudo cat /etc/mysql/debian.cnf
-# init user
-mysql -udebian-sys-maint -pqqdWvUpyYdfW9crD # depend on ur machine
-create database company;
-use company;
-create table userpass (username VARCHAR(20), password VARCHAR(256), class VARCHAR(20));
-describe userpass; # for check
-insert into userpass values ('root', 'mypassword', 'admin');
-select * from userpass where username='root'; # select
 ```
 
 ### 2. OpenSSL
