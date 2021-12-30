@@ -5,15 +5,18 @@ import asyncio
 from datetime import datetime
 from threading import Timer
 from sqlmanager import *
+from authority import *
 from config import cfg
 
 
-user_cache = {}
+sql_manager = SQLManager()
+auth_manager = AuthorityManager(sql_manager)
+user_key_cache = {}
 
 
 def time_threading(inc):
-    global user_cache
-    user_cache = {}
+    global user_key_cache
+    user_key_cache = {}
     print(datetime.now(), 'update cache')
     t = Timer(inc, time_threading, (inc,))
     t.start()
@@ -23,10 +26,25 @@ time_threading(cfg.server.expiretime)
 
 
 def process_sql(username, sql):
-    outdata = {
+    state_ok = {
         'status': 'ok'
     }
-    return json.dumps(outdata)
+    state_error = {
+        'status': 'error'
+    }
+    state_denied = {
+        'status': 'denied'
+    }
+    if auth_manager.authorize(username, sql):
+        try:
+            output = sql_manager.run([sql])
+            state_ok['info'] = str(output[0])
+            return json.dumps(state_ok)
+        except Exception as e:
+            state_error['info'] = str(e)
+            return json.dumps(state_error)
+    else:
+        return json.dumps(state_denied)
 
 
 def identify(username, password, table_name='user'):
@@ -41,7 +59,7 @@ def identify(username, password, table_name='user'):
 
 
 def process_main(recv):
-    global user_cache
+    global user_key_cache
     method = recv['method']
     if method == 'login':
         username = recv['username']
@@ -50,7 +68,7 @@ def process_main(recv):
             key = ''
             for _ in range(cfg.tempkey_len):
                 key += random.choice(cfg.alphabet)
-            user_cache[username] = key
+            user_key_cache[username] = key
             resp = {'key': key, 'state': 'ok'}
             return json.dumps(resp)
         else:
@@ -59,15 +77,15 @@ def process_main(recv):
         username = recv['username']
         password = recv['password']
         if identify(username, password):
-            user_cache.pop(username)
+            user_key_cache.pop(username)
         else:
             return None
     elif method == 'sql':
         username = recv['username']
         key = recv['key']
-        if user_cache.get(username, 'none') == 'none':
+        if user_key_cache.get(username, 'none') == 'none':
             return None
-        elif user_cache[username] != key:
+        elif user_key_cache[username] != key:
             return None
         return process_sql(username, recv['sql'])
     return None
