@@ -1,4 +1,4 @@
-### 1. Install MySQL
+### 1. MySQL
 
 ```bash
 sudo apt-get install mysql-server mysql-client
