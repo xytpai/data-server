@@ -19,7 +19,7 @@ def process_sql(username, sql) -> str:
         except Exception as e:
             resp = {'state': 'error', 'info': str(e)}
     else:
-        resp = {'state': 'denied', 'info': str(e)}
+        resp = {'state': 'denied'}
     return resp
 
 
