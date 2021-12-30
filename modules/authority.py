@@ -6,5 +6,5 @@ class AuthorityManager:
         self.sql_manager = sql_manager
         self.cfg = sql_manager.cfg
 
-    def authorize(self, user_id, command) -> bool:
+    def authorize(self, username, command) -> bool:
         return True
