@@ -5,9 +5,9 @@ class SQLManager:
     def __init__(self, cfg, check=True) -> None:
         self.cfg = cfg
         self.conn = pymysql.connect(
-            host=cfg.database.host,
-            user=cfg.database.user,
-            password=cfg.database.password,
+            host=self.cfg.database.host,
+            user=self.cfg.database.user,
+            password=self.cfg.database.password,
             charset='utf8')
         if check:
             self.__check()
@@ -16,6 +16,15 @@ class SQLManager:
         self.conn.close()
 
     def run(self, sequence: list, mechod='fetchone') -> list:
+        try:
+            self.conn.ping()
+        except Exception as e:
+            print(str(e))
+            self.conn = self.conn = pymysql.connect(
+                host=self.cfg.database.host,
+                user=self.cfg.database.user,
+                password=self.cfg.database.password,
+                charset='utf8')
         output = []
         cursor = self.conn.cursor()
         for item in sequence:
