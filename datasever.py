@@ -2,91 +2,36 @@ import ssl
 import json
 import random
 import asyncio
-from datetime import datetime
-from threading import Timer
-from sqlmanager import *
+import modules
 from config import cfg
 
 
-sql_manager = SQLManager()
-auth_manager = AuthorityManager(sql_manager)
-user_key_cache = {}
+sql_manager = modules.SQLManager(cfg)
+auth_manager = modules.AuthorityManager(sql_manager)
+identifier = modules.Identifier(sql_manager)
 
 
-def time_threading(inc):
-    global user_key_cache
-    user_key_cache = {}
-    print(datetime.now(), 'update cache')
-    t = Timer(inc, time_threading, (inc,))
-    t.start()
-
-
-time_threading(cfg.server.expiretime)
-
-
-def process_sql(username, sql):
-    state_ok = {
-        'state': 'ok'
-    }
-    state_error = {
-        'state': 'error'
-    }
-    state_denied = {
-        'state': 'denied'
-    }
+def process_sql(username, sql) -> str:
     if auth_manager.authorize(username, sql):
         try:
             output = sql_manager.run([sql])
-            state_ok['info'] = str(output[0])
-            return json.dumps(state_ok)
+            resp = {'state': 'ok', 'info': str(output[0])}
         except Exception as e:
-            state_error['info'] = str(e)
-            return json.dumps(state_error)
+            resp = {'state': 'error', 'info': str(e)}
     else:
-        return json.dumps(state_denied)
-
-
-def identify(username, password, table_name='user'):
-    global sql_manager
-    output = sql_manager.run(
-        ['select salt, password from {0} where id=\"{1}\";'.format(table_name, username)], mechod='fetchone')
-    output = eval(output[-1])
-    salt = output[0]
-    exact_password = output[1]
-    password = cfg.function.encode_password(password, salt)
-    return password == exact_password
+        resp = {'state': 'denied', 'info': str(e)}
+    return resp
 
 
 def process_main(recv):
     global user_key_cache
     method = recv['method']
     if method == 'login':
-        username = recv['username']
-        password = recv['password']
-        if identify(username, password):
-            key = ''
-            for _ in range(cfg.tempkey_len):
-                key += random.choice(cfg.alphabet)
-            user_key_cache[username] = key
-            resp = {'key': key, 'state': 'ok'}
-            return json.dumps(resp)
-        else:
-            return None
+        return identifier.login(recv['username'], recv['password'])
     elif method == 'logout':
-        username = recv['username']
-        password = recv['password']
-        if identify(username, password):
-            user_key_cache.pop(username)
-        else:
-            return None
+        return identifier.logout(recv['username'], recv['password'])
     elif method == 'sql':
-        username = recv['username']
-        key = recv['key']
-        if user_key_cache.get(username, 'none') == 'none':
-            return None
-        elif user_key_cache[username] != key:
-            return None
-        return process_sql(username, recv['sql'])
+        return identifier.run(recv['username'], recv['key'], process_sql, recv['sql'])
     return None
 
 

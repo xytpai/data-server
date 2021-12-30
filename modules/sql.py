@@ -1,16 +1,16 @@
-import pymysql as sql
-from config import cfg
+import pymysql
 
 
 class SQLManager:
-    def __init__(self, check=True) -> None:
-        self.conn = sql.connect(
+    def __init__(self, cfg, check=True) -> None:
+        self.cfg = cfg
+        self.conn = pymysql.connect(
             host=cfg.database.host,
             user=cfg.database.user,
             password=cfg.database.password,
             charset='utf8')
         if check:
-            self.check()
+            self.__check()
 
     def __del__(self):
         self.conn.close()
@@ -27,11 +27,11 @@ class SQLManager:
                 output.append(str(cursor.fetchall()))
         return output
 
-    def check(self):
+    def __check(self) -> None:
         info_head = 'SQLManager CK: '
-        database_name = cfg.database.base
-        table_dict = cfg.database.tables
-        init_dict = cfg.database.init
+        database_name = self.cfg.database.base
+        table_dict = self.cfg.database.tables
+        init_dict = self.cfg.database.init
         # database check
         try:
             self.run(["create database {0};".format(database_name)])
@@ -62,11 +62,3 @@ class SQLManager:
                     self.run([command])
                 except Exception as e:
                     print(info_head + str(e))
-
-
-class AuthorityManager:
-    def __init__(self, sql_manager) -> None:
-        self.sql_manager = sql_manager
-
-    def authorize(self, user_id, command):
-        return True

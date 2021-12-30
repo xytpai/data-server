@@ -73,8 +73,3 @@ cfg.database.init = {
 cfg.server.host = '192.168.0.106'
 cfg.server.port = 9999
 cfg.server.expiretime = 60*60*24*3
-
-
-# random
-cfg.alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ/=+'
-cfg.tempkey_len = 128
