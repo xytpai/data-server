@@ -28,7 +28,7 @@ def process_main(recv):
     if method == 'login':
         return identifier.login(recv['username'], recv['password'])
     elif method == 'logout':
-        return identifier.logout(recv['username'], recv['password'])
+        return identifier.logout(recv['username'], recv['key'])
     elif method == 'sql':
         return identifier.run(recv['username'], recv['key'], process_sql, recv['sql'])
     else:
